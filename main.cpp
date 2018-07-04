@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QtDebug>
 #include <QStringList>
+#include <QTimer>
 
 void printAvailablePositionSources() {
 	qDebug() << "QGeoPositionInfoSource";
@@ -20,10 +21,20 @@ int main(int argc, char **argv) {
 	auto positionSource = QGeoPositionInfoSource::createDefaultSource(&app);
 	QObject::connect(positionSource, &QGeoPositionInfoSource::positionUpdated, 
 			[](const QGeoPositionInfo &pos) {
-				qDebug() << pos;
+				qDebug() << "positionUpdated:" << pos;
 			});
+	
+	auto timer = new QTimer();
+	timer->setInterval(1000);
+	QObject::connect(timer, &QTimer::timeout, [positionSource]() {
+				qDebug() << "last known position:" << positionSource->lastKnownPosition();
+			});
+	timer->setSingleShot(false);
+	timer->start();
+	
 	positionSource->setPreferredPositioningMethods(QGeoPositionInfoSource::SatellitePositioningMethods);
         positionSource->setUpdateInterval(5000);
         positionSource->startUpdates();
+
 	return app.exec();
 }
