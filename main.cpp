@@ -4,6 +4,7 @@
 #include <QtDebug>
 #include <QStringList>
 #include <QTimer>
+#include <QDateTime>
 
 void printAvailablePositionSources() {
 	qDebug() << "QGeoPositionInfoSource";
@@ -18,10 +19,22 @@ int main(int argc, char **argv) {
 
 	printAvailablePositionSources();
 
+	// first way
 	auto positionSource = QGeoPositionInfoSource::createDefaultSource(&app);
 	QObject::connect(positionSource, &QGeoPositionInfoSource::positionUpdated, 
 			[](const QGeoPositionInfo &pos) {
-				qDebug() << "positionUpdated:" << pos;
+			            static QDateTime lastPositionTime = QDateTime::fromMSecsSinceEpoch(0);
+
+				    // this one seems to be really important,
+				    // QNmeaPositionInfoSource doesn't really guarantee time always
+				    // increasing, but it could break further layers of an app
+				    // so we recheck
+				    if (pos.timestamp() > lastPositionTime) {
+				    	lastPositionTime = pos.timestamp();
+				    	qDebug() << "positionUpdated" << pos;
+
+					// any additional processing
+				    }
 			});
 	
 	auto timer = new QTimer();
@@ -33,7 +46,6 @@ int main(int argc, char **argv) {
 	timer->start();
 	
 	positionSource->setPreferredPositioningMethods(QGeoPositionInfoSource::SatellitePositioningMethods);
-        positionSource->setUpdateInterval(5000);
         positionSource->startUpdates();
 
 	return app.exec();
